@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  digital-library-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: digital-library-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - DB_PATH=/app/data/database.sqlite
+      - OPENLIBRARY_API_BASE_URL=https://openlibrary.org
+      - ADMIN_EMAIL=admin@library.com
+      - ADMIN_PASSWORD=admin123
+    volumes:
+      - sqlite_data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/', (res) => { process.exit(res.statusCode === 404 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - digital-library-network
+
+  # Optional: Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: digital-library-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - digital-library-api
+    networks:
+      - digital-library-network
+    profiles:
+      - production
+
+volumes:
+  sqlite_data:
+    driver: local
+
+networks:
+  digital-library-network:
+    driver: bridge

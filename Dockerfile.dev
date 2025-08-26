@@ -1,0 +1,36 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm install
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nestjs -u 1001
+
+# Copy source code
+COPY . .
+
+# Create directory for database with proper permissions
+RUN mkdir -p /app/data && chown -R nestjs:nodejs /app
+
+# Switch to non-root user
+USER nestjs
+
+# Expose ports
+EXPOSE 3000 9229
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV PORT=3000
+
+# Start the application in development mode with debugging
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["npm", "run", "start:debug"]

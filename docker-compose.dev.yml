@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  digital-library-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: digital-library-api-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "9229:9229" # Debug port
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - JWT_SECRET=development-secret-key
+      - DB_PATH=/app/data/database.sqlite
+      - OPENLIBRARY_API_BASE_URL=https://openlibrary.org
+      - ADMIN_EMAIL=admin@library.com
+      - ADMIN_PASSWORD=admin123
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - dev_data:/app/data
+    networks:
+      - digital-library-dev-network
+
+volumes:
+  dev_data:
+    driver: local
+
+networks:
+  digital-library-dev-network:
+    driver: bridge
